@@ -5,7 +5,7 @@ from scipy.optimize import curve_fit
 from scipy.integrate import quad
 import csv
 
-path = r"C:\Users\emili\Desktop\magistrale\LabMed\SiPMeScintillatoriPlastici\Morrocchi_SiPM\F1--Guadagno56V--00000.txt"
+path = r"C:\Users\emili\Desktop\magistrale\LabMed\SiPMeScintillatoriPlastici\Morrocchi_SiPM\F1--Guadagno55V--00000.txt"
 name =os.path.basename(path)
 
 tempo = [] #s
@@ -55,16 +55,69 @@ def MGF(x, *params):
         sigma = params[i+2]
         result += a * np.exp(-((x-mu)**2)/(2*(sigma**2)))
     return result
+#guess per 59V ok
+"""
+guess = [66.6, 0.03, 0.2,
+         151.3, 3.49,0.2,
+         199.0, 7.22, 0.2,
+         156, 10.72, 0.1,
+         102.7, 14.84, 0.1,
+         81.8, 18.36, 0.5]
+"""
+#guess per 58V ok
+"""
+guess = [192.1, 1.70, 0.25,
+         213.8, 4.94, 0.25,
+         182.6, 8.17, 0.25,
+         119.7, 11.48, 0.25,
+         68.1, 14.60, 0.25,
+         35.0, 18.95, 0.5]
+"""
+#guess per 57V PERFETTI
+"""
+guess = [255.9, 1.08, 0.5,
+         258.3, 3.70, 0.5,
+         167.4, 6.39, 0.5,
+         91.4, 8.99, 0.5,
+         50.7, 11.6, 0.5,
+         21.4, 14.25, 0.5]
+"""
+#guess per 56V NON TOCCARE
+"""
+guess = [161, 0.39, 0.5,
+         268, 2.51, 0.5,
+         260, 4.55, 0.5,
+         270, 6.63, 0.5,
+         185, 8.81, 0.5,
+         125.8, 10.83, 0.5,
+         74, 12.9, 0.5]
+"""
+#guess per 55V top
 
-guess = [161, 0.39, 2,
-         268, 2.51, 3,
-         260, 4.55, 3,
-         270, 6.63, 3,
-         185, 8.81, 3,
-         125.8, 10.83, 3,
-         74, 12.9, 5]
-          
-popt, pcov = curve_fit(MGF, x_data, y_data, p0= guess)
+guess= [80.5, 0.48, 0.5,
+        115.1, 2.1, 0.5,
+        140.1, 3.6, 0.5,
+        114.2, 5.1, 0.5,
+        106, 6.6, 0.5,
+        60.5, 8.19, 0.5,
+        37.7, 9.66, 0.5,
+        20.9, 11.14, 0.5,
+        15.1, 12.61, 0.5]
+
+#guess per 54V ok
+"""
+guess = [105.1, 0.30, 0.45,
+         105.6, 1.15, 0.45,
+         56.4, 2.18, 0.45,
+         31, 2.85, 0.4,
+         16.7, 3.7, 0.4,
+         6.8, 4.55, 0.4 ]
+"""
+#guess per 53_5V NON é UTILIZZABILE
+
+n_peak =  9 #int
+bound = (0, np.inf)
+popt, pcov = curve_fit(MGF, x_data, y_data, p0= guess, maxfev = 100000, bounds=bound)
 
 peaks = []
 peaks_err = []
@@ -72,7 +125,7 @@ amplitudes = []
 amplitudes_err = []
 sigmas = []
 sigmas_err = []
-for i in range(7):
+for i in range(n_peak):
     peaks.append(popt[1 + i*3])
     peaks_err.append(np.sqrt(pcov[1 +i*3,1 +i*3]))
     sigmas.append(popt[2+i*3])
@@ -125,7 +178,7 @@ for i in range (len(peaks)-2):
     charge.append(a)
     charge_err.append(b)
 
-print(f"AIUTOOOOO\n{charge}{charge_err}")
+print(f"Carica generata dalla singola microcella\n{charge}{charge_err}")
 
 index = np.linspace(1, len(charge), len(charge))
 #plot della retta di guadagno
