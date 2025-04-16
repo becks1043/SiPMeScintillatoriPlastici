@@ -5,11 +5,10 @@
 #nella sbarra e la differenza dei tempi fra i canali 1 e 2
 
 #posizione_sorgenteNa22
+import os 
 import numpy as np
 from matplotlib import pyplot as plt
-#from sklearn.cluster import DBSCAN
-from collections import Counter
-import matplotlib.colors as mcolors
+from scipy.optimize import curve_fit
 
 file_path = r"C:\Users\emili\Desktop\magistrale\LabMed\SiPMeScintillatoriPlastici\posizioni sorgente 22Na\Position_1.txt"
 file_path = r"C:\Users\emili\Desktop\magistrale\LabMed\SiPMeScintillatoriPlastici\posizioni sorgente 22Na\Position_2.txt"
@@ -27,19 +26,14 @@ energia2 =  A_ch3 + A_ch4
 
 bins1 = np.arange(min(energia1), max(energia1) + 1, 1)
 bins2 = np.arange(min(energia2), max(energia2) + 1, 1)
-plt.hist(energia1, bins=100,histtype='step', color="blue")
-plt.hist(energia2, bins=100 , histtype='step', color="red")
+plt.hist(energia1, bins=100,histtype='step', color="blue", label="barra sopra")
+plt.hist(energia2, bins=100 , histtype='step', color="red", label= "barra sotto")
+plt.legend()
+plt.title("Distribuzione d'energia nelle barre")
 plt.show()
 
-trash_hold = (energia1 <100) & (energia1>0)
-energia1_filtrata = energia1[trash_hold]
-energia2_filtrata = energia2[trash_hold]
-delay_1 = delay_1[trash_hold]
-delay_2 = delay_2[trash_hold]
-print(len(delay_1))
-
 # Calcolo della posizione di interazione sulle due lastre
-c = 7 #cm/ns
+c = 7.38 #cm/ns
 x_lastra1 = (c * delay_1) /2
 x_lastra2 = (c * delay_2) /2
 
@@ -51,76 +45,90 @@ x_lastra2 = x_lastra2[mask_2]
 delay_1 = delay_1[mask_1]
 delay_2 = delay_2[mask_2]
 
-b1 =  np.arange(min(x_lastra1), max(x_lastra1) + 1, 1)
-b2 =  np.arange(min(x_lastra2), max(x_lastra2) + 1, 1)
-print(np.shape(b1))
-plt.hist(x_lastra1, bins=b1, histtype='step', color="blue")
-plt.hist(x_lastra2, bins=b2, histtype='step', color="red")
+bin_width = 0.0738  # ris spaziale del sistema in cm 
+bins1 = np.arange(min(x_lastra1), max(x_lastra1)+ bin_width , bin_width)
+bins2 = np.arange(min(x_lastra2), max(x_lastra2) + bin_width, bin_width)
+plt.hist(x_lastra1, bins=bins1, histtype='step', color="blue", label="barra sopra")
+plt.hist(x_lastra2, bins=bins2, histtype='step', color="red", label="barra sotto")
+plt.axvline(np.mean(x_lastra1), color='blue', linestyle='--',label="valor medio")
+plt.legend(loc="best")
+plt.xlim(-22,22)
+plt.show()
+#fit gaussiano per l'istogramma
+count_x1, edge_x1 = np.histogram(x_lastra1, bins1)
+bin_x1= (edge_x1[1:] + edge_x1[:-1])*0.5
+
+guess = [np.max(count_x1), np.mean(count_x1), np.std(count_x1)]
+def gaussian(x, a , mu, sigma):
+    return a*np.exp(-(mu-x)**2/(2*sigma**2))
+popt, pcov = curve_fit(gaussian, bin_x1, count_x1, p0=guess, maxfev = 100000)
+x1 = np.linspace(min(bin_x1), max(bin_x1), 1000)
+#plot del fit
+plt.plot(x1, gaussian(x1, *popt), color="black", zorder= 5)
+plt.hist(x_lastra1, bins=bins1, histtype='step', color="blue", label="barra sopra")
+plt.hist(x_lastra2, bins=bins2, histtype='step', color="red", label="barra sotto")
+plt.axvline(popt[1], color='black', linestyle='--',label=f"$\mu$={np.round(popt[1], 2)}$\pm${np.round(popt[2])} cm")
+plt.legend(loc="best")
 plt.xlim(-22,22)
 plt.show()
 
 # Definizione delle coordinate delle lastre
-y_lastra2 = np.zeros_like(x_lastra2)  # Prima lastra a y = 0 cm
-y_lastra1 = np.full_like(x_lastra1, 22)  # Seconda lastra a y = 22 cm
+y_lastra1 = np.full_like(x_lastra1, +11)  # barra sopra
+y_lastra2 = np.full_like(x_lastra2, -11)  # barra sotto
 
-"""
-# Disegno delle linee di connessione tra i punti di interazione
-plt.plot([-22, 22], [0, 0], 'k-', linewidth=2, label="Lastra 1")
-plt.plot([-22, 22], [22, 22], 'k-', linewidth=2, label="Lastra 2")
+# Range di y da analizzare
+n = np.shape(x_lastra1)[0]
+yscan = np.linspace(11, -11, 50)  # definiamo i bordi e il numero di rette
+std_x_per_y = []
+for ycut in yscan:
+    x_at_cut = []
+    for i in range(n):
+        if x_lastra2[i] != x_lastra1[i]:
+            a = (y_lastra2[i] - y_lastra1[i]) / (x_lastra2[i] - x_lastra1[i])
+            b = y_lastra1[i] - a * x_lastra1[i]
+            x = (ycut - b) / a
+            if -22 <= x <= 22:
+                x_at_cut.append(x)
+    if len(x_at_cut) > 1:
+        std_x = np.std(x_at_cut)
+    else:
+        std_x = np.nan  # troppo pochi dati
+    std_x_per_y.append(std_x)
 
-for i in range(len(x_lastra1)):
-    plt.plot([x_lastra1[i], x_lastra2[i]], [y_lastra1[i], y_lastra2[i]], 'g--')
-plt.show()
-"""
-# Metodo Monte Carlo per migliorare la stima della posizione della sorgente
-N_sim = 1000  # Numero di simulazioni Monte Carlo
-sigma_tempo = 0.2  # Incertezza nei tempi di arrivo (ns)
+std_x_per_y = np.array(std_x_per_y)
+best_y = yscan[np.nanargmin(std_x_per_y)]
+#fit parabolico
+window = 2.0  # o 3.0, puoi provarli entrambi
+mask = (yscan >= best_y - window) & (yscan <= best_y + window)
+yscan_fit = yscan[mask]
+std_fit = std_x_per_y[mask]
 
-x_intersezioni = []
-y_intersezioni = []
-
-for _ in range(N_sim):
-    # Aggiungo rumore ai ritardi temporali
-    delay_1_noisy = delay_1 + np.random.normal(0, sigma_tempo, size=len(delay_1))
-    delay_2_noisy = delay_2 + np.random.normal(0, sigma_tempo, size=len(delay_2))
-    
-    # Ricalcolo le posizioni di interazione
-    x_lastra1_noisy = (c * delay_1_noisy) / 2
-    x_lastra2_noisy = (c * delay_2_noisy) / 2
-    
-    for i in range(len(x_lastra1_noisy)):
-        x1, y1 = x_lastra1_noisy[i], y_lastra1[i]
-        x2, y2 = x_lastra2_noisy[i], y_lastra2[i]
-        
-        if x2 != x1:
-            m = (y2 - y1) / (x2 - x1)
-            q = y1 - m * x1
-            x_intersezione = -q / m
-            y_intersezione = m * x_intersezione + q
-            
-            # Vincoliamo l'intersezione all'interno delle barre
-            if -22 <= x_intersezione <= 22 and 0 <= y_intersezione <= 22:
-                x_intersezioni.append(x_intersezione)
-                y_intersezioni.append(y_intersezione)
-
-# Calcoliamo la posizione media e la deviazione standard della sorgente
-x_sorgente = np.mean(x_intersezioni)
-y_sorgente = np.mean(y_intersezioni)
-sigma_x = np.std(x_intersezioni)
-sigma_y = np.std(y_intersezioni)
-
-# Visualizzazione
-plt.figure(figsize=(6, 6))
-plt.plot([-22, 22], [0, 0], 'k-', linewidth=2, label="Lastra 1")
-plt.plot([-22, 22], [22, 22], 'k-', linewidth=2, label="Lastra 2")
-
-plt.scatter(x_intersezioni, y_intersezioni, color='gray', alpha=0.1, s=10, label='Simulazioni Monte Carlo')
-plt.scatter(x_sorgente, y_sorgente, color='red', marker='x', s=100, label='Posizione stimata sorgente')
-plt.xlabel("X (cm)")
-plt.ylabel("Y (cm)")
+def par(x, a, b, c):
+     return a*x**2 + b*x + c
+guess2 = [1, -0.2, np.min(std_fit)]
+popt2, pcov2 = curve_fit(par, yscan_fit, std_fit, p0= guess2)
+x2 = np.linspace(min(yscan), max(yscan), 1000)
+# Plot della deviazione standard
+min_y = -popt2[1]/(2*popt2[0])
+min_y_err = min_y*np.sqrt((np.sqrt(pcov2[0,0])/popt2[0])**2+(np.sqrt(pcov2[1,1])/popt2[1])**2)
+plt.figure(figsize=(8, 5))
+plt.plot(x2, par(x2, *popt2), color="darkgreen")
+plt.scatter(yscan, std_x_per_y, label='Deviazione standard di x sulle rette y')
+plt.axvline(min_y, color='red', linestyle='--', label=f'Min a y = {min_y:.3f}$\pm${min_y_err:.3f} cm')
+plt.xlabel('y [cm]')
+plt.ylabel('Deviazione standard delle intersezioni x')
+plt.title('Posizione y della sorgente')
 plt.legend()
-plt.title("Ricostruzione della posizione della sorgente (Monte Carlo)")
-plt.grid()
+plt.grid(linestyle="--")
 plt.show()
 
-print(f"Posizione stimata della sorgente: X = {x_sorgente:.2f} ± {sigma_x:.2f} cm, Y = {y_sorgente:.2f} ± {sigma_y:.2f} cm")
+#plot delle posizioni della sorgente far le due barre
+name = os.path.basename(file_path)
+base_name, ext = os.path.splitext(name)
+plt.hlines(y=11, xmin=-22, xmax=22, color="black", linestyle="-")
+plt.hlines(y=-11, xmin=-22, xmax=22, color="black", linestyle="-")
+plt.errorbar(popt[1],min_y,min_y_err,popt[2], fmt="+",color = "red", capsize=2, label="posizione sorgente")
+plt.grid(linestyle="--")
+plt.legend()
+plt.title(f"Posizione del Na22 per {base_name}")
+plt.show()
