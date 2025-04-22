@@ -18,8 +18,8 @@ T_ch1, T_ch2,T_ch3, T_ch4, A_ch1, A_ch2, A_ch3, A_ch4 = np.loadtxt(file_path, un
 
 #suppongo che abbiamo acquisito ogni coincidenza
 #sottraggo i tempi per trovarmi i ritardi 
-delay_1 = T_ch1 - T_ch2
-delay_2 = T_ch3 - T_ch4
+delay_1 =  T_ch2 - T_ch1 
+delay_2 =  T_ch4  -  T_ch3 
 
 energia1 = A_ch1 + A_ch2
 energia2 =  A_ch3 + A_ch4
@@ -33,20 +33,20 @@ plt.title("Distribuzione d'energia nelle barre")
 plt.show()
 
 # Calcolo della posizione di interazione sulle due lastre
-c = 7.38 #cm/ns
+c = 14.75 #cm/ns
 x_lastra1 = (c * delay_1) /2
 x_lastra2 = (c * delay_2) /2
 
-mask_1 = (x_lastra1<22) & (x_lastra1>-22)
-mask_2 = (x_lastra2<22) & (x_lastra2>-22)
+mask_1 = (x_lastra1<22) & (x_lastra1>-22) & (x_lastra2<22) & (x_lastra2>-22)
+#mask_2 = (x_lastra2<22) & (x_lastra2>-22)
 
 x_lastra1 = x_lastra1[mask_1]
-x_lastra2 = x_lastra2[mask_2]
+x_lastra2 = x_lastra2[mask_1]
 delay_1 = delay_1[mask_1]
-delay_2 = delay_2[mask_2]
+delay_2 = delay_2[mask_1]
 
-bin_width = 0.0738  # ris spaziale del sistema in cm 
-bins1 = np.arange(min(x_lastra1), max(x_lastra1)+ bin_width , bin_width)
+bin_width = 1.  # ris spaziale del sistema in cm 
+bins1 = np.arange(min(x_lastra1), max(x_lastra1) + bin_width , bin_width)
 bins2 = np.arange(min(x_lastra2), max(x_lastra2) + bin_width, bin_width)
 plt.hist(x_lastra1, bins=bins1, histtype='step', color="blue", label="barra sopra")
 plt.hist(x_lastra2, bins=bins2, histtype='step', color="red", label="barra sotto")
@@ -127,7 +127,7 @@ name = os.path.basename(file_path)
 base_name, ext = os.path.splitext(name)
 plt.hlines(y=11, xmin=-22, xmax=22, color="black", linestyle="-")
 plt.hlines(y=-11, xmin=-22, xmax=22, color="black", linestyle="-")
-plt.errorbar(popt[1],min_y,min_y_err,popt[2], fmt="+",color = "red", capsize=2, label="posizione sorgente")
+plt.errorbar(popt[1], min_y, np.sqrt(min_y_err**2+bin_width**2), abs(popt[2]), fmt="+",color = "red", capsize=2, label="posizione sorgente")
 plt.grid(linestyle="--")
 plt.legend()
 plt.title(f"Posizione del Na22 per {base_name}")
