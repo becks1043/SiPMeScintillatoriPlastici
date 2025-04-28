@@ -47,19 +47,27 @@ def elabora_cartella(cartella_path):
             diff_signal_global.extend(diff_signal)
     return np.array(diff_time_global), np.array(diff_signal_global)
 
-cartella_path = r"C:\Users\emili\Desktop\magistrale\LabMed\SiPMeScintillatoriPlastici\Morrocchi_SiPM\55V"
+cartella_path = r"C:\Users\emili\Desktop\magistrale\LabMed\SiPMeScintillatoriPlastici\Morrocchi_SiPM\56V"
 #cartella_path = r"C:\Users\emili\Desktop\magistrale\LabMed\SiPMeScintillatoriPlastici\Morrocchi_SiPM\56V"
 # Esegui l'elaborazione sui file nella cartella
 diff_time_global, diff_signal_global = elabora_cartella(cartella_path)
 diff_time_global *= 1e9
+name = os.path.basename(cartella_path)
+#name = os.path.splitext(name)[0]
 
-#maschere
+#maschere 55V
 mask1 = (diff_time_global >= 1e1) & (diff_time_global<= 1e2) & (diff_signal_global <= 0.0319) #after pulse
 mask2 = (diff_signal_global >= 0.0524) #dark cross talk
 mask3 = (diff_signal_global <= 0.0524) & (diff_signal_global >= 0.0319) & (diff_time_global <= 90) #delayed cross talk
 mask4 = (diff_signal_global <= 0.0524) & (diff_signal_global >= 0.0319) & (diff_time_global >= 90) #dark count
+#maschere a 56V
+mask1 = (diff_time_global >= 1) & (diff_time_global<= 1e2) & (diff_signal_global <= 0.047) #after pulse
+mask2 = (diff_signal_global >= 0.0641) #dark cross talk
+mask3 = (diff_signal_global <= 0.0641) & (diff_signal_global >= 0.047) & (diff_time_global <= 45) #delayed cross talk
+mask4 = (diff_signal_global <= 0.0641) & (diff_signal_global >= 0.047) & (diff_time_global >= 90) #dark count
+#
 #tempo di recovery
-t_r = 111*1e-15 * 350*1e3 #tempo di recovery
+t_r = 111*1e-15 * 385*1e3 #tempo di recovery
 def linear (x, a ,b):
      return a*x + b
 
@@ -68,7 +76,7 @@ def recharge (t, R, tau):
 
 popt1, _ = curve_fit(linear, diff_time_global[mask1], diff_signal_global[mask1])
 popt2, _ = curve_fit(linear, diff_time_global[mask4], diff_signal_global[mask4])
-popt3, _ = curve_fit(recharge, diff_time_global[mask1] , diff_signal_global[mask1])
+popt3, pcov3 = curve_fit(recharge, diff_time_global[mask1] , diff_signal_global[mask1])
 #0.0346
 print(f"-----")
 #print(f"popt3 = {popt3} / {t_r}")
@@ -79,19 +87,21 @@ print("-----")
 print(f"tempo di scatrica microcella {popt3[1]}")
 print(f"after pulse ={np.round((sum(diff_time_global[mask1])/sum(diff_time_global))*100, 2)}%")
 print(f"cross talk ={np.round((sum(diff_time_global[mask2])/sum(diff_time_global))*100, 2)}%")
-print(f"delayed cross talk + AP ={np.round(((sum(diff_time_global[mask2])+(diff_time_global[mask1]))/sum(diff_time_global))*100, 2)}%")
+print(f"delayed cross talk + AP ={(sum(diff_time_global[mask2])+sum(diff_time_global[mask1]))/sum(diff_time_global)*100:.2f}%")
 
-plt.scatter(diff_time_global , diff_signal_global, s=1, marker="o" ,color ="purple", label="dark count")
-plt.scatter(diff_time_global[mask1] , diff_signal_global[mask1], s=1, marker="o" ,color ="red", label="after pulse")
-plt.scatter(diff_time_global[mask2] , diff_signal_global[mask2], s=1, marker="o" ,color ="green", label="dark + corss talk")
-plt.scatter(diff_time_global[mask3] , diff_signal_global[mask3], s=1, marker="o" ,color ="blue", label="delayed cross talk")
+plt.scatter(diff_time_global , diff_signal_global, s=1, marker="o" ,color ="purple")#, label="dark count"
+plt.scatter(diff_time_global[mask1] , diff_signal_global[mask1], s=1, marker="o" ,color ="red")#, label="after pulse"
+plt.scatter(diff_time_global[mask2] , diff_signal_global[mask2], s=1, marker="o" ,color ="green")#, label="dark + corss talk"
+plt.scatter(diff_time_global[mask3] , diff_signal_global[mask3], s=1, marker="o" ,color ="blue")#, label="delayed cross talk"
 #plt.plot(x1, linear(x1, *popt1), color= "orange")
 #plt.plot(x2, linear(x2, *popt2), color= "orange")
 plt.plot(x2, recharge(x2, *popt3), color= "black")
 plt.xscale("log")
 plt.xlabel("differenze temporali [ns]")
 plt.ylabel("Ampiezza")
-plt.legend(title= f"after pulse ={np.round((sum(diff_time_global[mask1])/sum(diff_time_global))*100, 2)}%")
+plt.grid(linestyle="--")
+plt.legend(title= fr"$\tau$ = {popt3[1]:.2f} $\pm$ {np.sqrt(pcov3[1][1]):.2f} ns")
+plt.title(f"Rumore correlato con alimentazione a {name}")
 plt.show()
 
 
