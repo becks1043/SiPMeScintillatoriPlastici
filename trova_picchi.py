@@ -23,7 +23,7 @@ class DLED:
         v_shifted = f_interp(time + shift)
         # Sottrai il segnale shiftato dall'originale
         diff_signal =  v_shifted - voltage 
-        peaks, _ = find_peaks(diff_signal, height= 0.01)  # Trova tutti i picchi
+        peaks, _ = find_peaks(diff_signal, height= 0.02)  # Trova tutti i picchi
         diff_time = np.diff(time[peaks])
         diff_signal = diff_signal[peaks][1:]
         return diff_time, diff_signal
@@ -47,7 +47,7 @@ def elabora_cartella(cartella_path):
             diff_signal_global.extend(diff_signal)
     return np.array(diff_time_global), np.array(diff_signal_global)
 
-cartella_path = r"C:\Users\emili\Desktop\magistrale\LabMed\SiPMeScintillatoriPlastici\Morrocchi_SiPM\56V"
+cartella_path = r"C:\Users\emili\Desktop\magistrale\LabMed\SiPMeScintillatoriPlastici\Morrocchi_SiPM\58V"
 #cartella_path = r"C:\Users\emili\Desktop\magistrale\LabMed\SiPMeScintillatoriPlastici\Morrocchi_SiPM\56V"
 # Esegui l'elaborazione sui file nella cartella
 diff_time_global, diff_signal_global = elabora_cartella(cartella_path)
@@ -65,9 +65,25 @@ mask1 = (diff_time_global >= 1) & (diff_time_global<= 1e2) & (diff_signal_global
 mask2 = (diff_signal_global >= 0.0641) #dark cross talk
 mask3 = (diff_signal_global <= 0.0641) & (diff_signal_global >= 0.047) & (diff_time_global <= 45) #delayed cross talk
 mask4 = (diff_signal_global <= 0.0641) & (diff_signal_global >= 0.047) & (diff_time_global >= 90) #dark count
-#
+#machere a 57V
+mask1 = (diff_time_global >= 5.7) & (diff_time_global<= 1e2) & (diff_signal_global <= 0.0634) #after pulse
+mask2 = (diff_signal_global >= 0.08) #dark cross talk
+mask3 = (diff_signal_global <= 0.08) & (diff_signal_global >= 0.0634) & (diff_time_global <= 90) #delayed cross talk
+mask4 = (diff_signal_global <= 0.08) & (diff_signal_global >= 0.0634) & (diff_time_global >= 90) #dark count
+#maschere a 58V (forse per queste tensioni va alzata la soglia di trashold)
+mask1 = (diff_time_global >= 15.) & (diff_time_global<= 1e2) & (diff_signal_global <= 0.07)& (diff_signal_global >= 0.0143) #after pulse
+mask2 = (diff_signal_global >= 0.10) #dark cross talk
+mask3 = (diff_signal_global <= 0.093) & (diff_signal_global >= 0.07) & (diff_time_global <= 90) #delayed cross talk
+mask4 = (diff_signal_global <= 0.093) & (diff_signal_global >= 0.07) & (diff_time_global >= 90) #dark count
+#maschera a 59V
+"""
+mask1 = (diff_time_global >= 5.7) & (diff_time_global<= 1e2) & (diff_signal_global <= 0.0634) #after pulse
+mask2 = (diff_signal_global >= 0.08) #dark cross talk
+mask3 = (diff_signal_global <= 0.08) & (diff_signal_global >= 0.0634) & (diff_time_global <= 90) #delayed cross talk
+mask4 = (diff_signal_global <= 0.08) & (diff_signal_global >= 0.0634) & (diff_time_global >= 90) #dark count
+"""
 #tempo di recovery
-t_r = 111*1e-15 * 385*1e3 #tempo di recovery
+t_r = 111*1e-15 * 385*1e3 #tempo di recovery uguale per ogni voltaggio
 def linear (x, a ,b):
      return a*x + b
 
