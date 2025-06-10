@@ -37,6 +37,8 @@ c = 14.75 #cm/ns
 x_lastra1 = (c * delay_1) /2
 x_lastra2 = (c * delay_2) /2
 
+delta_x = c*0.5*0.2  #cm risoluzione spaziale
+print(delta_x)
 mask_1 = (x_lastra1<22) & (x_lastra1>-22) & (x_lastra2<22) & (x_lastra2>-22)
 #mask_2 = (x_lastra2<22) & (x_lastra2>-22)
 
@@ -67,7 +69,7 @@ x1 = np.linspace(min(bin_x1), max(bin_x1), 1000)
 plt.plot(x1, gaussian(x1, *popt), color="black", zorder= 5)
 plt.hist(x_lastra1, bins=bins1, histtype='step', color="blue", label="barra sopra")
 plt.hist(x_lastra2, bins=bins2, histtype='step', color="red", label="barra sotto")
-plt.axvline(popt[1], color='black', linestyle='--',label=f"$\mu$={np.round(popt[1], 2)}$\pm${np.round(popt[2])} cm")
+plt.axvline(popt[1], color='black', linestyle='--',label=f"$\mu$={popt[1]:.1f}$\pm${popt[2]:.0f} cm")
 plt.legend(loc="best")
 plt.xlim(-22,22)
 plt.show()
@@ -127,7 +129,8 @@ name = os.path.basename(file_path)
 base_name, ext = os.path.splitext(name)
 plt.hlines(y=11, xmin=-22, xmax=22, color="black", linestyle="-")
 plt.hlines(y=-11, xmin=-22, xmax=22, color="black", linestyle="-")
-plt.errorbar(popt[1], min_y, np.sqrt(min_y_err**2+bin_width**2), abs(popt[2]), fmt="+",color = "red", capsize=2, label="posizione sorgente")
+#plt.errorbar(popt[1], min_y, np.sqrt(min_y_err**2+2*bin_width**2), abs(popt[2]), fmt="+",color = "red", capsize=2, label="posizione sorgente")
+plt.errorbar(popt[1], min_y, np.sqrt(min_y_err**2+2*bin_width**2), delta_x, fmt="+",color = "red", capsize=2, label="posizione sorgente")
 plt.grid(linestyle="--")
 plt.legend()
 plt.title(f"Posizione del Na22 per {base_name}")
